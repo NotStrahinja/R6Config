@@ -11,19 +11,10 @@
 #include <vector>
 #include <zlib.h>
 #include "minIni.h"
-#if 1
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx11.h>
-#endif
-
-#if 0
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui/backends/imgui_impl_win32.h>
-#include <imgui/backends/imgui_impl_dx11.h>
-#endif
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -143,7 +134,7 @@ std::string base64Encode(std::span<const uint8_t> data)
     size_t outputLen = 4 * ((inputLen + 2) / 3);
     std::string out(outputLen, '\0');
 
-    for (size_t i = 0, j = 0; i < inputLen; )
+    for(size_t i = 0, j = 0; i < inputLen; )
     {
         uint32_t a = i < inputLen ? data[i++] : 0;
         uint32_t b = i < inputLen ? data[i++] : 0;
@@ -156,7 +147,7 @@ std::string base64Encode(std::span<const uint8_t> data)
         out[j++] = k_b64Table[ triple        & 0x3F];
     }
 
-    for (size_t i = 0; i < (3 - inputLen % 3) % 3; i++)
+    for(size_t i = 0; i < (3 - inputLen % 3) % 3; i++)
         out[outputLen - 1 - i] = '=';
 
     return out;
@@ -164,15 +155,15 @@ std::string base64Encode(std::span<const uint8_t> data)
 
 std::optional<std::vector<uint8_t>> base64Decode(std::string_view data)
 {
-    if (data.size() % 4 != 0) return std::nullopt;
+    if(data.size() % 4 != 0) return std::nullopt;
 
     size_t outputLen = data.size() / 4 * 3;
-    if (data[data.size() - 1] == '=') outputLen--;
-    if (data[data.size() - 2] == '=') outputLen--;
+    if(data[data.size() - 1] == '=') outputLen--;
+    if(data[data.size() - 2] == '=') outputLen--;
 
     std::vector<uint8_t> out(outputLen);
 
-    for (size_t i = 0, j = 0; i < data.size(); )
+    for(size_t i = 0, j = 0; i < data.size(); )
     {
         uint32_t a = data[i] == '=' ? 0 : k_b64Reverse[(uint8_t)data[i]]; i++;
         uint32_t b = data[i] == '=' ? 0 : k_b64Reverse[(uint8_t)data[i]]; i++;
@@ -181,9 +172,9 @@ std::optional<std::vector<uint8_t>> base64Decode(std::string_view data)
 
         uint32_t triple = (a << 18) | (b << 12) | (c << 6) | d;
 
-        if (j < outputLen) out[j++] = (triple >> 16) & 0xFF;
-        if (j < outputLen) out[j++] = (triple >> 8)  & 0xFF;
-        if (j < outputLen) out[j++] =  triple        & 0xFF;
+        if(j < outputLen) out[j++] = (triple >> 16) & 0xFF;
+        if(j < outputLen) out[j++] = (triple >> 8)  & 0xFF;
+        if(j < outputLen) out[j++] =  triple        & 0xFF;
     }
 
     return out;
@@ -195,10 +186,10 @@ public:
 
     void writeFields(const GameConfig& cfg, std::span<const FieldDef> fields) const
     {
-        for (const auto& f : fields)
+        for(const auto& f : fields)
         {
             const void* ptr = reinterpret_cast<const uint8_t*>(&cfg) + f.offset;
-            if (f.type == FieldType::Int)
+            if(f.type == FieldType::Int)
                 ini_putl(f.section, f.key, *static_cast<const int*>(ptr),   m_path.string().c_str());
             else
                 ini_putf(f.section, f.key, *static_cast<const float*>(ptr), m_path.string().c_str());
@@ -207,10 +198,10 @@ public:
 
     void readFields(GameConfig& cfg, std::span<const FieldDef> fields) const
     {
-        for (const auto& f : fields)
+        for(const auto& f : fields)
         {
             void* ptr = reinterpret_cast<uint8_t*>(&cfg) + f.offset;
-            if (f.type == FieldType::Int)
+            if(f.type == FieldType::Int)
                 *static_cast<int*>(ptr)   = (int)ini_getl(f.section, f.key, 0,    m_path.string().c_str());
             else
                 *static_cast<float*>(ptr) = (float)ini_getf(f.section, f.key, 0.f, m_path.string().c_str());
@@ -228,21 +219,19 @@ std::vector<fs::path> getProfiles()
     fs::path base = fs::path("C:\\Users") / username / "Documents\\My Games\\Rainbow Six - Siege";
 
     std::error_code ec;
-    if (!fs::exists(base, ec)) {
+    if(!fs::exists(base, ec))
         return {};
-    }
 
     std::vector<fs::path> profiles;
-    for (const auto& entry : fs::directory_iterator(base, ec))
+    for(const auto& entry : fs::directory_iterator(base, ec))
     {
-        if (!entry.is_directory()) continue;
-        if (entry.path().filename() == "Benchmark") continue;
+        if(!entry.is_directory()) continue;
+        if(entry.path().filename() == "Benchmark") continue;
         profiles.push_back(entry.path());
     }
 
-    if (profiles.empty()) {
+    if(profiles.empty())
         return {};
-    }
 
     return profiles;
 }
@@ -250,42 +239,34 @@ std::vector<fs::path> getProfiles()
 static int doImport(const IniFile& ini, std::string_view configStr)
 {
     auto compressed = base64Decode(configStr);
-    if (!compressed) {
+    if(!compressed)
         return 1;
-    }
 
     constexpr size_t payloadSize = sizeof(ConfigHeader) + sizeof(GameConfig);
     std::vector<uint8_t> payload(payloadSize);
 
     uLongf decompressedSize = (uLongf)payloadSize;
-    if (uncompress(payload.data(), &decompressedSize,
-                   compressed->data(), (uLong)compressed->size()) != Z_OK)
-    {
+    if(uncompress(payload.data(), &decompressedSize, compressed->data(), (uLong)compressed->size()) != Z_OK)
         return 2;
-    }
 
-    if (decompressedSize != payloadSize) {
+    if(decompressedSize != payloadSize)
         return 3;
-    }
 
     const auto& header = *reinterpret_cast<const ConfigHeader*>(payload.data());
     const auto& config = *reinterpret_cast<const GameConfig*>(payload.data() + sizeof(ConfigHeader));
 
-    if (header.magic != CONFIG_MAGIC) {
+    if(header.magic != CONFIG_MAGIC)
         return 4;
-    }
 
-    if (header.version != CONFIG_VERSION) {
+    if(header.version != CONFIG_VERSION)
         return 5;
-    }
 
     uint32_t computedCRC = (uint32_t)crc32(0L, (const Bytef*)&config, sizeof(GameConfig));
-    if (computedCRC != header.crc32) {
+    if(computedCRC != header.crc32)
         return 6;
-    }
 
     ini.writeFields(config, k_fields);
-    if (config.customADS)
+    if(config.customADS)
         ini.writeFields(config, k_adsFields);
 
     return 0;
@@ -295,7 +276,7 @@ std::string doExport(const IniFile& ini)
 {
     GameConfig config{};
     ini.readFields(config, k_fields);
-    if (config.customADS)
+    if(config.customADS)
         ini.readFields(config, k_adsFields);
 
     ConfigHeader header{};
@@ -311,9 +292,8 @@ std::string doExport(const IniFile& ini)
     uLongf compressedBound = compressBound((uLong)payloadSize);
     std::vector<uint8_t> compressed(compressedBound);
 
-    if (compress(compressed.data(), &compressedBound, payload.data(), (uLong)payloadSize) != Z_OK) {
+    if(compress(compressed.data(), &compressedBound, payload.data(), (uLong)payloadSize) != Z_OK)
         return {};
-    }
     compressed.resize(compressedBound);
 
     std::string encoded = base64Encode(compressed);
@@ -425,25 +405,26 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-int CopyToClipboard(const std::string& text) {
-    if (!OpenClipboard(nullptr)) return 0;
+int CopyToClipboard(const std::string& text)
+{
+    if(!OpenClipboard(nullptr)) return 0;
 
-    // Clear current clipboard contents
-    if (!EmptyClipboard()) {
+    if(!EmptyClipboard())
+    {
         CloseClipboard();
         return 0;
     }
 
-    // Allocate global memory for the text (+1 for null terminator)
     HGLOBAL hGlob = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-    if (!hGlob) {
+    if(!hGlob)
+    {
         CloseClipboard();
         return 0;
     }
 
-    // Lock and copy data
     void* pData = GlobalLock(hGlob);
-    if (!pData) {
+    if(!pData)
+    {
         GlobalFree(hGlob);
         CloseClipboard();
         return 0;
@@ -452,14 +433,13 @@ int CopyToClipboard(const std::string& text) {
     memcpy(pData, text.c_str(), text.size() + 1);
     GlobalUnlock(hGlob);
 
-    // Set clipboard data
-    if (!SetClipboardData(CF_TEXT, hGlob)) {
+    if(!SetClipboardData(CF_TEXT, hGlob))
+    {
         GlobalFree(hGlob);
         CloseClipboard();
         return 0;
     }
 
-    // Do NOT free hGlob after SetClipboardData succeeds
     CloseClipboard();
     return 1;
 }
@@ -470,15 +450,14 @@ void showToast(const std::string& text, ImVec4 color, float duration = 3.0f)
     static ImVec4       s_color;
     static float        s_timeLeft = 0.0f;
 
-    // If new message is passed in, reset the timer
-    if (!text.empty())
+    if(!text.empty())
     {
         s_text     = text;
         s_color    = color;
         s_timeLeft = duration;
     }
 
-    if (s_timeLeft <= 0.0f) return;
+    if(s_timeLeft <= 0.0f) return;
 
     s_timeLeft -= ImGui::GetIO().DeltaTime;
 
