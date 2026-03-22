@@ -15,7 +15,7 @@ This app was made because of the lack of config shareability in R6 compared to o
 This project uses [ImGui](https://github.com/ocornut/imgui) and [minIni](https://github.com/compuphase/minIni).
 
 ## Downloads
-You can get the latest version [here]().
+You can get the latest version [here](https://github.com/NotStrahinja/R6Config/releases/latest).
 
 ## Screenshots
 
