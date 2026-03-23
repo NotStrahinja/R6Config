@@ -14,6 +14,11 @@ This app was made because of the lack of config shareability in R6 compared to o
 ## Dependencies
 This project uses [ImGui](https://github.com/ocornut/imgui) and [minIni](https://github.com/compuphase/minIni).
 
+## Building
+To build, just run `make` and the output will be `R6Config.exe`.
+
+If you don't want to build, you have the latest builds below.
+
 ## Downloads
 You can get the latest version [here](https://github.com/NotStrahinja/R6Config/releases/latest).
 
