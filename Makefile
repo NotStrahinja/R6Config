@@ -22,7 +22,7 @@ minIni.c
 
 OBJ = $(SRC:.cpp=.o)
 
-TARGET = imgui_app
+TARGET = R6Config
 
 all: $(TARGET)
 
