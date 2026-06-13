@@ -765,7 +765,7 @@ int main(void)
 
     webview_t w = webview_create(0, NULL);
 
-    webview_set_title(w, "R6 Config");
+    webview_set_title(w, "R6Config");
     webview_set_size(w, 430, 232, WEBVIEW_HINT_FIXED);
 
     webview_bind(w, "getProfiles", js_get_profiles, w);
