@@ -148,9 +148,54 @@ unsigned char* base64_decode(const char* data, size_t input_length, size_t* outp
 
 #define MAX_PROFILES 20
 
+#define MAX_PRESETS      40
+#define MAX_PRESET_NAME  48
+#define MAX_PRESET_CODE  256
+
 static char g_documentsPath[512];
 static char g_profiles[MAX_PROFILES][256];
 static int  g_profileCount = 0;
+
+typedef struct {
+    char name[MAX_PRESET_NAME];
+    char code[MAX_PRESET_CODE];
+} Preset;
+
+static Preset g_presets[MAX_PRESETS];
+static int    g_presetCount = 0;
+
+static void get_presets_path(char *out, size_t out_size)
+{
+#ifdef _WIN32
+    char exePath[512];
+    DWORD len = GetModuleFileNameA(NULL, exePath, sizeof(exePath));
+    if(len == 0 || len >= sizeof(exePath))
+    {
+        snprintf(out, out_size, "presets.ini");
+        return;
+    }
+
+    char *lastSlash = strrchr(exePath, '\\');
+    if(lastSlash) *lastSlash = '\0';
+
+    snprintf(out, out_size, "%s\\presets.ini", exePath);
+#else
+    snprintf(out, out_size, "presets.ini");
+#endif
+}
+
+static int is_valid_preset_name(const char *name)
+{
+    if(name[0] == '\0') return 0;
+    if(strlen(name) >= MAX_PRESET_NAME) return 0;
+
+    for(const char *p = name; *p; p++)
+    {
+        if(*p == '=' || *p == '[' || *p == ']' || *p == '\n' || *p == '\r') return 0;
+    }
+
+    return 1;
+}
 
 static int load_profiles(void)
 {
@@ -613,6 +658,107 @@ static void js_import_config(const char *seq, const char *req, void *arg)
     }
 }
 
+static int preset_browse_cb(const char *Section, const char *Key, const char *Value, void *UserData)
+{
+    (void)UserData;
+
+    if(strcmp(Section, "Presets") != 0) return 1;
+    if(g_presetCount >= MAX_PRESETS) return 0;
+
+    strncpy(g_presets[g_presetCount].name, Key, MAX_PRESET_NAME - 1);
+    g_presets[g_presetCount].name[MAX_PRESET_NAME - 1] = '\0';
+
+    strncpy(g_presets[g_presetCount].code, Value, MAX_PRESET_CODE - 1);
+    g_presets[g_presetCount].code[MAX_PRESET_CODE - 1] = '\0';
+
+    g_presetCount++;
+    return 1;
+}
+
+static void js_get_presets(const char *seq, const char *req, void *arg)
+{
+    webview_t w = (webview_t)arg;
+    (void)req;
+
+    char path[512];
+    get_presets_path(path, sizeof(path));
+
+    g_presetCount = 0;
+    ini_browse(preset_browse_cb, NULL, path);
+
+    char json[16384];
+    size_t pos = 0;
+
+    pos += (size_t)snprintf(json + pos, sizeof(json) - pos, "[");
+    for(int i = 0; i < g_presetCount; i++)
+    {
+        char nameEsc[MAX_PRESET_NAME * 2];
+        char codeEsc[MAX_PRESET_CODE * 2];
+        json_escape(g_presets[i].name, nameEsc, sizeof(nameEsc));
+        json_escape(g_presets[i].code, codeEsc, sizeof(codeEsc));
+
+        pos += (size_t)snprintf(json + pos, sizeof(json) - pos, "%s{\"name\":\"%s\",\"code\":\"%s\"}",
+                                 i ? "," : "", nameEsc, codeEsc);
+    }
+    snprintf(json + pos, sizeof(json) - pos, "]");
+
+    webview_return(w, seq, 0, json);
+}
+
+static void js_save_preset(const char *seq, const char *req, void *arg)
+{
+    webview_t w = (webview_t)arg;
+
+    char name[MAX_PRESET_NAME];
+    char code[MAX_PRESET_CODE];
+    json_arg(req, 0, name, sizeof(name));
+    json_arg(req, 1, code, sizeof(code));
+
+    if(!is_valid_preset_name(name))
+    {
+        webview_return(w, seq, 0, "{\"ok\":false,\"error\":\"Invalid preset name.\"}");
+        return;
+    }
+
+    if(code[0] == '\0')
+    {
+        webview_return(w, seq, 0, "{\"ok\":false,\"error\":\"No exported config to save.\"}");
+        return;
+    }
+
+    char path[512];
+    get_presets_path(path, sizeof(path));
+
+    if(!ini_puts("Presets", name, code, path))
+    {
+        webview_return(w, seq, 0, "{\"ok\":false,\"error\":\"Failed to write preset.\"}");
+        return;
+    }
+
+    webview_return(w, seq, 0, "{\"ok\":true}");
+}
+
+static void js_delete_preset(const char *seq, const char *req, void *arg)
+{
+    webview_t w = (webview_t)arg;
+
+    char name[MAX_PRESET_NAME];
+    json_arg(req, 0, name, sizeof(name));
+
+    if(!is_valid_preset_name(name))
+    {
+        webview_return(w, seq, 0, "{\"ok\":false,\"error\":\"Invalid preset name.\"}");
+        return;
+    }
+
+    char path[512];
+    get_presets_path(path, sizeof(path));
+
+    ini_puts("Presets", name, NULL, path);
+
+    webview_return(w, seq, 0, "{\"ok\":true}");
+}
+
 int main(void)
 {
     load_profiles();
@@ -625,6 +771,9 @@ int main(void)
     webview_bind(w, "getProfiles", js_get_profiles, w);
     webview_bind(w, "exportConfig", js_export_config, w);
     webview_bind(w, "importConfig", js_import_config, w);
+    webview_bind(w, "getPresets", js_get_presets, w);
+    webview_bind(w, "savePreset", js_save_preset, w);
+    webview_bind(w, "deletePreset", js_delete_preset, w);
 
     webview_set_html(w, UI_HTML);
 
