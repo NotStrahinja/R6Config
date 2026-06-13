@@ -17,7 +17,6 @@
 #define CONFIG_VERSION  2
 #define CONFIG_MAGIC    0x52364346  // "R6CF"
 
-/* exportMask bits */
 #define EXPORT_DISPLAY        (1 << 0)
 #define EXPORT_DISPLAY_SET    (1 << 1)
 #define EXPORT_AUDIO          (1 << 2)
@@ -71,10 +70,6 @@ typedef struct {
 
 } GameConfig;
 #pragma pack(pop)
-
-/* ------------------------------------------------------------------ */
-/* base64                                                              */
-/* ------------------------------------------------------------------ */
 
 static const char b64_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -151,10 +146,6 @@ unsigned char* base64_decode(const char* data, size_t input_length, size_t* outp
     return decoded;
 }
 
-/* ------------------------------------------------------------------ */
-/* profile discovery                                                   */
-/* ------------------------------------------------------------------ */
-
 #define MAX_PROFILES 20
 
 static char g_documentsPath[512];
@@ -198,11 +189,6 @@ static void get_settings_path(int idx, char *out, size_t out_size)
     snprintf(out, out_size, "%s%s\\GameSettings.ini", g_documentsPath, g_profiles[idx]);
 }
 
-/* ------------------------------------------------------------------ */
-/* import / export                                                     */
-/* ------------------------------------------------------------------ */
-
-/* returns malloc'd base64 string on success, NULL on failure */
 static char* do_export(const char* iniPath, uint8_t mask)
 {
     GameConfig config;
@@ -291,20 +277,9 @@ static char* do_export(const char* iniPath, uint8_t mask)
     char* encoded = base64_encode(compressed, compressedSize, &encodedSize);
     free(compressed);
 
-    return encoded; /* caller frees */
+    return encoded;
 }
 
-/*
- * Result codes:
- *   0 = success
- *   1 = failed to decode base64
- *   2 = failed to decompress
- *   3 = decompressed size mismatch
- *   4 = invalid header magic
- *   5 = version mismatch
- *   6 = CRC32 mismatch (corrupted)
- *   7 = input too short / invalid
- */
 static int do_import(const char* iniPath, const char* config_str)
 {
     if(strlen(config_str) <= 30) return 7;
@@ -405,10 +380,6 @@ static int do_import(const char* iniPath, const char* config_str)
     return 0;
 }
 
-/* ------------------------------------------------------------------ */
-/* tiny JSON helpers for webview bindings                              */
-/* ------------------------------------------------------------------ */
-
 static void json_escape(const char *in, char *out, size_t out_size)
 {
     size_t j = 0;
@@ -433,9 +404,6 @@ static void json_escape(const char *in, char *out, size_t out_size)
     out[j] = '\0';
 }
 
-/* Copies a single JSON element's text (already trimmed of surrounding
- * whitespace) into `out`, stripping quotes and unescaping \" \\ \n \t
- * for strings, or copying raw text for numbers/literals. */
 static void json_copy_element(const char *start, const char *end, char *out, size_t out_size)
 {
     while(start < end && (*start == ' ' || *start == '\t' || *start == '\n' || *start == '\r')) start++;
@@ -476,8 +444,6 @@ static void json_copy_element(const char *start, const char *end, char *out, siz
     out[j] = '\0';
 }
 
-/* Extracts the `index`-th top-level element from a JSON array string
- * such as `[0,"abcd"]`. Returns 0 on success, -1 if not found. */
 static int json_arg(const char *req, int index, char *out, size_t out_size)
 {
     const char *p = req;
@@ -547,10 +513,6 @@ static int json_arg_int(const char *req, int index, int default_val)
     if(json_arg(req, index, buf, sizeof(buf)) != 0) return default_val;
     return atoi(buf);
 }
-
-/* ------------------------------------------------------------------ */
-/* webview bindings                                                    */
-/* ------------------------------------------------------------------ */
 
 static void js_get_profiles(const char *seq, const char *req, void *arg)
 {
@@ -650,10 +612,6 @@ static void js_import_config(const char *seq, const char *req, void *arg)
         webview_return(w, seq, 0, "{\"ok\":true}");
     }
 }
-
-/* ------------------------------------------------------------------ */
-/* entry point                                                         */
-/* ------------------------------------------------------------------ */
 
 int main(void)
 {
