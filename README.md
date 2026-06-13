@@ -12,7 +12,7 @@ It works by exporting the selected profile's GameSettings.ini file, compressing 
 This app was made because of the lack of config shareability in R6 compared to other titles like CS2.
 
 ## Dependencies
-This project uses [ImGui](https://github.com/ocornut/imgui) and [minIni](https://github.com/compuphase/minIni).
+This project uses [WebView](https://github.com/webview/webview), [minIni](https://github.com/compuphase/minIni) and [zlib](https://github.com/madler/zlib).
 
 ## Building
 To build, just run:
