@@ -29,4 +29,4 @@ You can get the latest version [here](https://github.com/NotStrahinja/R6Config/r
 
 ## Screenshots
 
-<img width="432" height="264" alt="image" src="https://github.com/user-attachments/assets/f8808be3-c61e-4dac-9a16-daef51d6c66f" />
+<img width="432" height="305" alt="image" src="https://github.com/user-attachments/assets/d6d40f4e-422c-45b2-ad2d-402dd9d75a50" />
