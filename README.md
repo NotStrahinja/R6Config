@@ -17,10 +17,10 @@ This project uses [WebView](https://github.com/webview/webview), [minIni](https:
 ## Building
 To build, just run:
 ```bash
-cmake -G Ninja -B build -S . -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake -G "Visual Studio 18 2026" -B build -S .
+cmake --build build --config Release
 ```
-And the output will be in `/build/R6Config.exe`
+And the output will be in `/build/bin/Release/R6Config.exe`
 
 If you don't want to build, you have the latest builds below.
 
