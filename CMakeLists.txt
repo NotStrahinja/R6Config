@@ -13,6 +13,8 @@ FetchContent_Declare(
     GIT_TAG 0.12.0)
 FetchContent_MakeAvailable(webview)
 
+find_package(ZLIB REQUIRED)
+
 add_executable(R6Config WIN32)
-target_sources(R6Config PRIVATE main.c minIni.c)
-target_link_libraries(R6Config PRIVATE webview::core_static z)
+target_sources(R6Config PRIVATE main.c minIni.c app.rc)
+target_link_libraries(R6Config PRIVATE webview::core_static ZLIB::ZLIB)
